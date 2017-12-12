@@ -1,0 +1,93 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: strongswan-vpn
+  annotations:
+  labels:
+    app: strongswan-vpn
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: strongswan-vpn
+    spec:
+      imagePullSecrets:
+        - name: werft
+      containers:
+      - name: strongswan-vpn
+        image: "werft.tpip.net/cennso/image-vpn-s2s:confd-version"
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        volumeMounts:
+        - name: modules
+          mountPath: /lib/modules
+        env:
+        - name: IPSEC_LOCALPRIVIP
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localprivip
+        - name: IPSEC_LOCALPUBIP
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localpubip
+        - name: IPSEC_REMOTEIP
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-remoteip
+        - name: IPSEC_LOCALNET
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localnet
+        - name: IPSEC_REMOTENET
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-remotenet
+        - name: IPSEC_PSK
+          valueFrom:
+            secretKeyRef:
+              name: strongswan-secret
+              key: ipsec-psk
+        - name: USE_ENV_CONFIG
+          value: "HIDDEN_PUBIP_HOST"
+        - name: SET_ROUTE_DEFAULT_TABLE
+          value: "FALSE"
+      initContainers:
+      - name: ip-address-setup
+        image: alpine
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        command:
+          - /bin/sh
+          - "-xc"
+          - |
+              ip a add ${PUBLIC_IP}/${PUBLIC_IP_NETMASK} dev net0
+              ip r change default via $ROUTER
+        env:
+        - name: PUBLIC_IP
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localpubip
+        - name: PUBLIC_IP_NETMASK
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localpubip-netmask
+        - name: ROUTER
+          valueFrom:
+            configMapKeyRef:
+              name: strongswan-vpn
+              key: ipsec-localpubip-router
+      volumes:
+      - name: modules
+        hostPath:
+          path: /lib/modules

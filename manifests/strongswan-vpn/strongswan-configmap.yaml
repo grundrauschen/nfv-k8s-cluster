@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: strongswan-vpn
+  labels:
+    app: strongswan-vpn
+data:
+  ipsec-localprivip: "92.43.50.67"
+  ipsec-localpubip: "92.43.50.67"
+  ipsec-remoteip: "46.101.199.109"
+  ipsec-localnet: "10.77.0.0/18"
+  ipsec-remotenet: "10.31.0.0/16"
+  # use lenght of netmask like "28" for /28
+  ipsec-localpubip-netmask: "28"
+  ipsec-localpubip-router: "92.43.50.65"
